@@ -1,0 +1,22 @@
+[package]
+name = "trace"
+version = "1.0.0"
+description = "Trace - 极简自动时间追溯到系统日历"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [ ] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-autostart = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde", "std"] }
+anyhow = "1.0"
+x-win = "5.5.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+dirs = "5.0"

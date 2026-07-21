@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./.tmp/validation",
+    "rootDir": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false
+  },
+  "include": [
+    "scripts/run-workblock-validations.ts",
+    "src/utils/workblocks.ts",
+    "src/utils/planning.ts",
+    "src/services/dataService.ts"
+  ]
+}
