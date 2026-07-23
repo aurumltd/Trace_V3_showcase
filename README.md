@@ -1,171 +1,94 @@
 # Trace
 
-Trace is a local-first AI work replay and planning agent for macOS knowledge workers.
+Trace is a local-first AI work replay and planning assistant for macOS knowledge workers.
 
-It does not replace Calendar, Reminders, Notion, or task management tools. Instead, Trace acts as an agentic interpretation layer on top of existing work habits: it captures what actually happened, compresses noisy activity signals into readable work blocks, compares actual work with lightweight planning context, generates explainable next-step suggestions, and helps the user review what to adjust next.
+It captures device activity, compresses noisy signals into correctable work blocks, aligns actual work with Calendar and Reminders, and helps users decide what to adjust next. It is designed as an interpretation layer above existing tools—not another task-management system.
 
-## For Product Reviewers
+> Portfolio note: this repository separates implemented beta capability, designed roadmap, and unvalidated hypotheses. It does not present planned RAG or evaluation work as shipped results.
 
-This repository is structured as a product management showcase, not only a code demo.
+## Start Here
 
-Start here:
+### English
 
-- [Product Review Brief](PRODUCT_REVIEW.md) - the fastest overview of the product judgment, scope, and AI PM signal
-- [Portfolio Case Study EN](docs/portfolio-case-study-en.md) - full senior PM case study
-- [AI Agent System Design EN](docs/ai-agent-system-design-en.md) - agent workflow, RAG, memory, tool use, fallback, and evaluation
-- [Product Decisions EN](docs/product-decisions-en.md) - key tradeoffs behind the product
-- [中文作品集案例](docs/portfolio-case-study-cn.md)
-- [AI Agent 系统设计中文](docs/ai-agent-system-design.md)
-- [产品决策中文](docs/product-decisions-cn.md)
+1. [Product Case Study](docs/portfolio-case-study-en.md) — problem framing, strategy, scope, product loop, trust, implementation evidence, and evaluation
+2. [AI Agent System Design](docs/ai-agent-system-design-en.md) — agent loop, tools, memory, RAG, contracts, fallback, and release gates
+3. [Product Decision Log](docs/product-decisions-en.md) — concise record of the most important trade-offs
 
-What this project is designed to demonstrate:
+### 中文
 
-- ambiguous problem framing and product boundary definition
-- AI agent product design beyond a chatbot wrapper
-- RAG, memory, tool use, human correction, and fallback design
-- local-first privacy and trust decisions
-- technical product judgment for macOS system constraints
-- roadmap thinking from beta reliability to agent quality evaluation
+1. [产品案例](docs/portfolio-case-study-cn.md) — 问题定义、战略、范围、核心闭环、信任、实现证据与评估
+2. [AI 智能体系统设计](docs/ai-agent-system-design.md) — Agent 循环、工具、记忆、RAG、输出契约、回退与上线门槛
+3. [产品决策记录](docs/product-decisions-cn.md) — 核心取舍的简明记录
 
-## Product Positioning
+Recommended review path:
 
-Trace is designed around one question:
+- **5 minutes:** Case Study sections 01, 04, 09, and 12
+- **10–15 minutes:** full Case Study
+- **Technical AI PM review:** Agent System Design and linked implementation evidence
 
-> What did I actually work on today, how did it compare with my plan, and what should I adjust next?
+## Product Thesis
 
-The product is intentionally lightweight:
+Knowledge workers already have tools that record plans and events. The missing layer is a trustworthy way to connect what was planned with what actually happened.
 
-- No full task management system
-- No full calendar replacement
-- No team workflow in the current scope
-- No Windows version in the current scope
-- No deep third-party PM-tool integration in the current scope
+Trace answers:
 
-The strategic choice is to become the factual layer, interpretation layer, and planning assistance layer for an existing personal work system.
+1. What did I actually work on?
+2. How did execution differ from my plan?
+3. What is the most useful thing to advance next?
 
-## Target Users
-
-Trace is built for individual macOS knowledge workers who:
-
-- already use Calendar and Reminders
-- switch frequently across apps, browser tabs, documents, chats, and coding tools
-- dislike manual timer-based tracking
-- want a reliable work replay instead of raw activity logs
-- need plan-vs-actual reflection without adopting another heavy productivity system
-
-## Core Agent Flow
+## Core Loop
 
 ```mermaid
 flowchart LR
-  A[Activity Capture] --> B[Work Understanding Agent]
-  B --> C[Work Blocks]
-  D[Calendar Tool] --> E[Context Builder]
-  F[Reminders Tool] --> E
-  G[Learned Rules Memory] --> B
-  R[Local Retrieval / RAG] --> E
-  R --> H
-  R --> J
-  C --> E
-  E --> H[Planning Agent]
-  H --> I[Plan Blocks]
-  I --> J[Execution Monitor]
-  C --> J
-  J --> K[Review Agent]
-  K --> L[Did / Drift / Next]
-  M[User Corrections] --> G
+  A[Activity Capture] --> B[Work Blocks]
+  B --> C[Calendar / Reminders Context]
+  C --> D[Replay and Correction]
+  D --> E[Plan and Execution Comparison]
+  E --> F[Did / Drift / Next]
+  D --> G[Local Learned Rules]
+  G --> B
 ```
 
-## Core Features
+## Product Scope
 
-### Today
+**In scope**
 
-Shows what is happening today:
+- Individual macOS knowledge workers
+- Automatic activity capture and semantic work blocks
+- Calendar and Reminders context
+- Today, Timeline, Review, and Settings workflows
+- Local AI plan/review generation with deterministic fallback
+- User correction and resettable learned rules
 
-- live tracking state
-- captured work time
-- focus ratio
-- planned coverage
-- key work blocks
-- unplanned and low-value blocks
-- remaining-day planning suggestions
+**Not in current scope**
 
-### Timeline
-
-Turns raw activity records into a reviewable timeline:
-
-- aggregated work blocks instead of raw event noise
-- editable title, category, activity type, context, and time
-- manual linking to Calendar or Reminders context
-- correction feedback that improves later recognition
-
-### Review
-
-Helps users understand longer-term work patterns:
-
-- today / this week / last week / last 30 days
-- category distribution
-- focus and drift analysis
-- fragmentation signals
-- structured AI summary: what happened, what drifted, what to do next
-
-### Settings
-
-Controls the data sources and rules that affect replay quality:
-
-- tracking preferences
-- Calendar sync
-- Reminders context
-- ignored applications
-- AI summary settings
-- learned rules
-
-## AI Agent Design
-
-Trace is not a chatbot and not just an LLM summary wrapper. Its agent system includes:
-
-- activity signal collection
-- work understanding and semantic work-block aggregation
-- Calendar / Reminders context alignment
-- local retrieval / RAG for grounding suggestions in historical work blocks, reminders, calendar constraints, and learned rules
-- planning suggestions with next action, prep hint, energy level, and priority reason
-- execution monitoring against actual work blocks
-- review generation with did / drift / next
-- user correction and learned local rules
-- fallback behavior when AI or system context is unavailable
+- Team monitoring or timesheets
+- Full task/calendar replacement
+- Windows or mobile clients
+- Silent control of external tools
+- Shipped vector retrieval/RAG
 
 ## Implementation Status
 
-| Area | Status | Evidence in repo |
+| Capability | Status | Evidence |
 |---|---|---|
-| macOS desktop app shell | Implemented beta | `src-tauri/`, `src/App.tsx` |
-| activity capture and work-block aggregation | Implemented beta | `src-tauri/src/watcher/`, `src/utils/workblocks.ts` |
+| macOS desktop app and activity capture | Implemented beta | `src-tauri/`, `src-tauri/src/watcher/` |
+| Work-block aggregation and context matching | Implemented beta | `src/utils/workblocks.ts` |
 | Calendar and Reminders context | Implemented beta | `src-tauri/src/calendar.rs`, `src/services/ipc/` |
-| Today planning flow | Implemented beta | `src/pages/Today.tsx`, `src/utils/planning.ts` |
-| Timeline correction loop | Implemented beta | `src/pages/Timeline.tsx`, learned rules data model |
-| Review summaries and drift analysis | Implemented beta | `src/pages/Review.tsx` |
-| local AI summary flow | Implemented beta with fallback | `src-tauri/src/main.rs`, `src/services/dataService.ts` |
-| RAG grounding layer | Product design / roadmap | `docs/ai-agent-system-design-en.md`, `docs/product-decisions-en.md` |
-| agent quality evaluation metrics | Product design / roadmap | `docs/portfolio-case-study-en.md` |
-
-This distinction is intentional: the showcase separates implemented beta capabilities from designed agent roadmap items to keep the product case credible.
+| Planning and deterministic fallback | Implemented beta | `src/utils/planning.ts`, `src/pages/Today.tsx` |
+| Correction and learned rules | Implemented beta | `src/pages/Timeline.tsx`, `src-tauri/src/main.rs` |
+| Review and drift analysis | Implemented beta | `src/pages/Review.tsx`, `src/pages/Analytics.tsx` |
+| Local AI summary | Beta with fallback | `src-tauri/src/main.rs` |
+| Vector retrieval/RAG | Designed, not implemented | `docs/ai-agent-system-design-en.md` |
+| Full offline agent evaluation set | Planned | Current base: `scripts/run-workblock-validations.ts` |
 
 ## Technical Overview
 
-Trace is a local-first Tauri desktop app.
-
 - Frontend: React + TypeScript
 - Desktop runtime: Tauri
-- Local data: app config/data files
-- System context: macOS Calendar and Reminders
-- AI summary: local model flow where available, with conservative fallback behavior
-
-Local data includes:
-
-- `settings.json`
-- `activities_YYYY-MM-DD.json`
-- `learned_rules.json`
-
-Trace writes aggregated work blocks into a dedicated Calendar and avoids overwriting user-edited Calendar events where possible.
+- Native context: macOS activity, Calendar, and Reminders
+- Local data: application data and configuration files
+- AI: local model where available, with deterministic fallback
 
 ## Local Development
 
@@ -177,7 +100,7 @@ npm run tauri dev
 ## Verification
 
 ```bash
+npm run validate:logic
 npm run build
-cd src-tauri && cargo check
-cd src-tauri && cargo test
+cd src-tauri && cargo check && cargo test
 ```

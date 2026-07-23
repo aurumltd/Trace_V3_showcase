@@ -1,75 +1,59 @@
-# Trace Product Decisions
+# Trace Product Decision Log
 
-This document summarizes the product decisions behind Trace. It is written for product reviewers who want to evaluate judgment, tradeoffs, and AI product design depth.
+This document records only the critical trade-offs to avoid repeating the full case. See the [Product Case Study](portfolio-case-study-en.md) for problem context, implementation status, and evaluation.
 
-## Decision 1: Do not build another task system
+## Decision 1: Do Not Build Another Task System
 
-**Problem:** Users already have Calendar, Reminders, Notion, or lightweight task habits. Asking them to migrate into a new system creates high friction.
+- **Alternative:** Add native tasks, calendar, team collaboration, and full planning workflows
+- **Choice:** Read Calendar and Reminders, then add facts, interpretation, and next-step support
+- **Reason:** Reduce migration cost and focus on the work-replay gap existing tools do not solve
+- **Cost:** Context quality depends on system permission and external-data completeness
 
-**Decision:** Trace reads existing planning context instead of replacing it.
+## Decision 2: Form Work Blocks Before Generating Advice
 
-**Why it matters:** This keeps adoption lightweight and makes Trace an interpretation layer, not another planning database.
+- **Alternative:** Send raw activity directly to an LLM for summarization
+- **Choice:** Use deterministic logic to create reviewable work blocks before planning and review
+- **Reason:** Raw events are too noisy to support stable explanation, correction, and evaluation
+- **Cost:** Aggregation rules, boundary tests, and correction mechanisms must be maintained
 
-## Decision 2: Start from facts, not self-reporting
+## Decision 3: Embed the Agent in the Workflow Instead of Leading with Chat
 
-**Problem:** Manual time tracking depends on memory and discipline. It also breaks when users are busy.
+- **Alternative:** Build a productivity-coach chat window
+- **Choice:** Place perception, planning, observation, and review inside Today, Timeline, and Review
+- **Reason:** Users need continuous context and actionable state, not a one-shot conversation
+- **Cost:** Every surface needs a distinct job and structured output
 
-**Decision:** Trace starts from real activity capture and then aggregates activity into work blocks.
+## Decision 4: Make Correction the Trust and Learning Loop
 
-**Why it matters:** The product creates a factual baseline before asking AI to summarize or recommend anything.
+- **Alternative:** Allow editing only the currently displayed result
+- **Choice:** Update the record and save visible, resettable local rules
+- **Reason:** The same mistake should not require repeated correction, and users must control learning
+- **Cost:** Rule conflict, unlinking, and incorrect-rule accumulation require explicit handling
 
-## Decision 3: Use AI to interpret work, not just summarize text
+## Decision 5: Treat the Local Model as an Enhancement, Not a Dependency
 
-**Problem:** Generic AI summaries can sound useful while missing the user's actual plan and execution state.
+- **Alternative:** Require an LLM for every plan and review
+- **Choice:** Use a local model for structured output while preserving deterministic plans and template fallback
+- **Reason:** The model may be absent, slow, or invalid; core value must remain available
+- **Cost:** Two paths must be maintained with consistent semantics
 
-**Decision:** Trace structures AI around work understanding, planning, execution monitoring, and review.
+## Decision 6: Treat RAG as the Next Evidence Layer, Not a Current Implementation Claim
 
-**Why it matters:** The agent has a product job: convert noisy behavior into plan-aware decisions.
+- **Alternative:** Describe any historical-data access as RAG
+- **Choice:** Call the current mechanism explicit context and rules; reserve vector retrieval, top-k evidence, and citations for the designed roadmap
+- **Reason:** Technical terms must map to real mechanisms, not inflate roadmap work into shipped capability
+- **Cost:** Current personalization relies mostly on rules and limited historical context
 
-## Decision 4: Make correction a core loop
+## Decision 7: Optimize Automatic Linking for Precision
 
-**Problem:** AI will misread window titles, project context, and user intent.
+- **Alternative:** Match every work block to a plan whenever possible
+- **Choice:** Keep an Unknown state when evidence is weak and support manual link/unlink
+- **Reason:** A false link contaminates plan comparison and long-term review, damaging trust more than a missing link
+- **Cost:** Early coverage is lower and some results require confirmation
 
-**Decision:** Users can correct titles, categories, context keys, time ranges, and Calendar / Reminder links.
+## Decision 8: Separate Implemented, Designed, and Unvalidated Work
 
-**Why it matters:** Correction is the trust and learning mechanism. It turns AI mistakes into local learned rules.
-
-## Decision 5: Ground recommendations with context and RAG
-
-**Problem:** Agent suggestions can become generic if they are not grounded in the user's own work evidence.
-
-**Decision:** Use local retrieval / RAG to retrieve relevant work blocks, reminders, calendar constraints, learned rules, and review summaries.
-
-**Why it matters:** Recommendations should explain their evidence instead of appearing as black-box advice.
-
-## Decision 6: Prefer low-confidence fallback over false certainty
-
-**Problem:** Overconfident AI planning can damage trust quickly.
-
-**Decision:** When evidence is weak or tools fail, Trace falls back to explicit rules, cached context, and editable suggestions.
-
-**Why it matters:** The product is safer when it says "I am not sure" and asks for correction instead of forcing automation.
-
-## Decision 7: Keep the product local-first
-
-**Problem:** Work activity data is sensitive. Users may not want raw behavior records sent to third-party systems.
-
-**Decision:** Prioritize local storage, local rules, local context, and local AI summaries where available.
-
-**Why it matters:** Privacy is not only a technical requirement. It shapes the product's trust model and adoption path.
-
-## Decision 8: Separate Today, Timeline, and Review jobs
-
-**Problem:** Productivity products often collapse dashboards, logs, and reviews into the same screen.
-
-**Decision:** Today answers "what now," Timeline answers "what exactly happened," and Review answers "what pattern should I change."
-
-**Why it matters:** Each surface has a distinct user job and agent responsibility.
-
-## Decision 9: Treat implementation status as part of product credibility
-
-**Problem:** AI product portfolios can overstate roadmap concepts as shipped features.
-
-**Decision:** The README separates implemented beta capabilities from designed roadmap items.
-
-**Why it matters:** Clear status boundaries make the product case more credible for senior PM review.
+- **Implemented:** Beta code and working flows
+- **Designed:** System specifications for RAG and evaluation not yet completed
+- **Unvalidated:** User value, long-term permission retention, retention, and productivity impact
+- **Reason:** AI portfolio credibility comes from evidence boundaries, not the number of capability labels

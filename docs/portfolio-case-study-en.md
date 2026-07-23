@@ -1,425 +1,253 @@
-# Trace Portfolio Case Study: AI Work Replay and Planning Agent
+# Trace Product Case Study: From Activity Logs to an Explainable Work Agent
 
-## 01. Project Overview
+## 01. Executive Summary
 
-Trace is a local-first AI work replay and planning agent for macOS knowledge workers. It does not replace Calendar, Reminders, Notion, or task management tools. Instead, it sits on top of existing work habits, captures what actually happened, compresses noisy activity signals into understandable work blocks, and helps the user answer: what did I work on today, did it move my plan forward, and what should I do next?
+Trace is a local-first work replay and planning assistant for macOS knowledge workers. It reads device activity, Calendar, and Reminders, compresses fragmented signals into correctable work blocks, and helps users answer three questions:
 
-**One-line positioning**
+1. What did I actually work on?
+2. How did execution differ from my plan?
+3. What is the most useful thing to advance next?
 
-> Trace is the factual layer, interpretation layer, and planning assistance layer for a personal work system: it reads real activity and planning context, then produces correctable work replay, plan comparison, and next-step recommendations.
+**Product positioning**
+
+> Trace does not replace a calendar or task tool. It acts as the factual, interpretation, and decision-support layer above a personal work system.
 
 **My role**
 
-- Product owner
-- UX and information architecture designer
-- AI agent workflow designer
-- Independent product builder
+- Independent product owner and builder
+- Product strategy, scope, and roadmap
+- Information architecture and core interaction design
+- AI agent, human-correction, and evaluation design
+- Working beta delivery with React, TypeScript, Tauri, and macOS-native capabilities
 
-**Core deliverables**
+**Current status**
 
-- Defined product positioning, target users, product boundaries, and non-goals
-- Designed the AI product flow from raw activity records to semantic work blocks
-- Designed a personal planning agent that reads context, prioritizes work, generates plan blocks, explains decisions, and monitors execution
-- Designed the Today / Timeline / Review / Settings information architecture
-- Designed Calendar / Reminders alignment, user corrections, learned rules, RAG grounding, and AI review flows
-- Advanced the product toward a working beta using Tauri and macOS-native capabilities
+- Implemented: working macOS beta, activity capture, work-block aggregation, Calendar/Reminders context, plan suggestions, execution comparison, review, and correction loop
+- Partially implemented: local-model plan and review generation with deterministic fallback
+- Designed, not implemented: vector retrieval/RAG, long-term pattern retrieval, and a full offline agent evaluation set
+- Not yet completed: external user-research sample, retention data, or production impact validation
 
-## 02. Background and User Problem
+This case therefore demonstrates **product judgment and system design from an ambiguous problem to a working beta**, not unvalidated business outcomes.
 
-Knowledge workers often switch across browsers, documents, code editors, chat tools, meetings, and research pages throughout the day. They may feel busy, but at the end of the day they often cannot answer:
+## 02. Problem Definition and Evidence Boundary
 
-1. What did I actually work on?
-2. Which work moved my plan forward?
-3. Which time blocks were fragmentation, drift, or low-value activity?
-4. Why did the plan and actual execution diverge?
-5. What should I prioritize with the time left today?
-6. What should I adjust tomorrow?
+Knowledge work is distributed across browsers, documents, meetings, chats, and development tools. Calendars show what was planned; activity logs show what was opened. Neither reliably explains what a block of time actually advanced.
 
-Traditional time trackers usually answer "how many minutes," but not "what work did this time represent." Generic AI summaries can describe the day after the fact, but they usually do not participate in plan comparison or execution judgment.
+Existing approaches leave three common gaps:
 
-Therefore, Trace is not primarily a timer. The product question is:
+| Approach | What it answers | Critical gap |
+|---|---|---|
+| Manual timer | How long a named task took | High recording cost and frequent interruption |
+| Raw activity tracker | Which apps and windows were active | Too noisy; weak work semantics |
+| AI summarizer | What a document or conversation says | Lacks continuous behavior, plan, and correction context |
 
-> How can low-level computer activity, calendar context, and reminder context be converted into understandable, correctable, and actionable work facts and planning recommendations?
+Trace focuses not on collecting more data, but on:
 
-## 03. Target Users
+> How can low-level behavior, explicit plans, and user feedback become trustworthy, explainable, and actionable work decisions?
 
-Trace focuses on a specific early user segment:
+### Research and validation boundary
 
-- Individual macOS knowledge workers
-- Users who already use Calendar and Reminders
-- Users who do not want to maintain another heavy task system
-- Users who frequently switch across many tools and contexts
-- Users who want automatic review instead of manual time reporting
-- Users who need next-step suggestions but do not want a system to take over their workflow
-- Users who care more about understanding and adjusting work patterns than tracking billable hours
+The current problem definition is based on personal workflow observation, adjacent-product pattern analysis, and technical learning from building the beta. It is not a substitute for formal user research. The following remain hypotheses:
 
-The target user already has planning tools. What is missing is a personal agent that can reconstruct facts, identify drift, explain why it happened, and assist the next planning decision.
+- whether users will keep activity-tracking permission enabled
+- whether work replay is more useful than time statistics
+- whether users will correct interpretations in exchange for better future accuracy
+- whether plan suggestions reduce the cost of re-entering a task
 
-## 04. Product Strategy and Tradeoffs
+The public case does not use fabricated interviews, adoption rates, or productivity improvements.
 
-Trace had two possible early product directions.
+## 03. Target User and Core Job
 
-| Direction | Approach | Advantage | Risk | Decision |
-|---|---|---|---|---|
-| Heavy work system | Build native tasks, calendar, timeline, and team workflows | Strong in-product loop | High learning cost, high migration cost, product becomes heavy | Rejected |
-| Lightweight interpretation layer + planning agent | Read Calendar / Reminders and focus on replay, understanding, review, and next-step suggestions | Low friction, clear boundary, easier to keep using | Requires high context quality and explanation quality | Chosen |
+**Primary user**
 
-Final strategy:
+- Individual macOS knowledge worker
+- Already uses Calendar and Reminders
+- Completes one workstream across multiple tools
+- Does not want another heavy task-management system
+- Wants low-friction review and planning adjustment
 
-> Trace should not become another task system. It should become the factual layer, interpretation layer, and planning assistance layer on top of the user's existing work system.
+**Out of scope**
 
-This decision shaped every downstream product choice:
+- Team timesheets or employee surveillance
+- Windows and mobile clients
+- Full project-management functionality
+- Silent modification of all external tasks
+- High-risk medical or legal decisions
 
-- Calendar remains responsible for schedules
-- Reminders remains responsible for lightweight task intent
-- Trace records what actually happened
-- Trace compares actual work against planning context
-- Trace's agent generates remaining-day plans and next actions from current context
-- Trace outputs actionable reviews
+**Core JTBD**
 
-## 05. Product Principles
+> When my work is fragmented across tools, help me reconstruct what I actually advanced and compare it with my plan, so I can adjust the next step without manually logging my day.
 
-### 1. Do not change the user's original habits
+## 04. Strategic Convergence from Early Versions to V3
 
-Users should not need to migrate their planning workflow into Trace or maintain a complex task system inside Trace.
+The early direction was closer to a lightweight time tracker that wrote automatic records into Calendar. Iteration revealed that time visibility alone did not solve the decision problem, so V3 narrowed the product around work understanding and planning feedback.
 
-### 2. Automate first
+| Direction | Value | Risk | Decision |
+|---|---|---|---|
+| Full task/calendar system | Complete in-product loop | High migration cost; direct competition with mature tools | Rejected |
+| Raw activity recorder | Simpler technical path | Noisy data with limited action value | Kept only as infrastructure |
+| Chat-based productivity coach | Familiar interaction | Discontinuous context and generic advice | Rejected as the primary UI |
+| Work replay + planning assistance | Low migration cost; fills the fact-and-judgment gap | Depends on semantic quality and trust | Chosen |
 
-If Trace can capture, aggregate, or infer something automatically, it should not ask the user to manually enter it.
+This convergence created four explicit choices:
 
-### 3. The agent assists, but does not take over
+1. **Read existing plans instead of rebuilding a planning system.**
+2. **Create reviewable work blocks before generating advice.**
+3. **Protect a deterministic core flow before adding generation.**
+4. **Treat correction as the quality loop, not an edge-case editor.**
 
-The agent can suggest next steps, explain priorities, and generate plan blocks, but it should not silently modify the user's original Reminders or force acceptance.
-
-### 4. Explainability first
-
-Trace should not only show charts. It should explain what happened, why work drifted, which items progressed, and what to do next.
-
-### 5. Correctability first
-
-AI judgments will be wrong. Trace must allow users to correct events, categories, time ranges, and context links.
-
-### 6. Local-first
-
-Work activity data is highly private. Trace prioritizes local storage, local processing, and local AI review where possible.
-
-## 06. AI Agent Product Definition
-
-The Trace agent is not a chatbot or floating assistant. It is an embedded personal work understanding and planning agent.
-
-**Agent goal**
-
-> Based on real user activity, Calendar, Reminders, historical work blocks, retrieved context, and user corrections, determine the current plan execution state, generate explainable remaining-day plans, and surface drift and next actions during review.
-
-**Agent boundary**
-
-| The agent can | The agent should not |
-|---|---|
-| Read daily activity, Calendar, and Reminders | Replace the user's task system |
-| Identify which planned items have progressed | Silently modify original Reminders |
-| Decide what should be prioritized with remaining time | Create many tasks or interrupt the user by default |
-| Provide next action, prep hint, energy level, and priority reason | Give generic advice without context |
-| Explain why a suggestion is ranked higher | Pretend to be confident when evidence is weak |
-| Learn from user corrections | Hide or lock learned rules |
-
-## 07. Agent System Architecture
+## 05. Core Experience and Information Architecture
 
 ```mermaid
 flowchart LR
-  A[Activity Capture] --> B[Work Understanding Agent]
-  B --> C[Work Blocks]
-  D[Calendar Tool] --> E[Context Builder]
-  F[Reminders Tool] --> E
-  G[Learned Rules Memory] --> B
-  R[Local Retrieval / RAG] --> E
-  R --> H[Planning Agent]
-  R --> J[Execution Monitor]
-  C --> E
-  E --> H[Planning Agent]
-  H --> I[Plan Blocks]
-  I --> J[Execution Monitor]
-  C --> J
-  J --> K[Review Agent]
-  K --> L[Did / Drift / Next]
-  M[User Corrections] --> G
+  A[Capture activity] --> B[Aggregate work blocks]
+  B --> C[Align Calendar and Reminders]
+  C --> D[Replay and user correction]
+  D --> E[Plan suggestion and execution comparison]
+  E --> F[Did / Drift / Next]
+  D --> G[Local learned rules]
+  G --> B
 ```
 
-### Agent capabilities
-
-| Capability | Responsibility | Input | Output |
-|---|---|---|---|
-| Work Understanding Agent | Convert window activity into work blocks | app, window title, duration, category rules, learned rules, retrieved similar blocks | work block, activity type, context key, focus score |
-| Context Builder | Read external planning context | Calendar, Reminders, historical activity, retrieved context | today's plan, occupied time, incomplete reminders, system warnings |
-| Retrieval / RAG Layer | Retrieve relevant evidence from local work history and planning context | query context, work blocks, reminders, calendar events, learned rules, review summaries | grounded evidence, similar blocks, source references |
-| Planning Agent | Generate remaining-day plans | incomplete reminders, free time, already-progressed work, user rhythm, retrieved evidence | plan block, next action, prep hint, energy level, priority reason |
-| Execution Monitor | Compare planned work with actual work | plan blocks, actual work blocks, semantic matches | completed, progressing, started, not started, drifted |
-| Review Agent | Generate review conclusions | work blocks, plan match, drift, low-value time, recent summaries | what was done, what drifted, what to do next |
-
-## 08. Tool Use Design
-
-Trace's agent does not generate suggestions from empty prompts. It uses tools and context to ground decisions.
-
-| Tool / Context | How the agent uses it | Product value |
+| Surface | User question | Core capability |
 |---|---|---|
-| macOS activity tracking | Reads real user behavior | Avoids relying on subjective memory |
-| Calendar | Understands occupied time and scheduling constraints | Prevents suggestions from conflicting with meetings |
-| Reminders | Reads original task intent | Avoids asking users to migrate task systems |
-| local activity history | Checks what has already progressed today | Prioritizes continuity and reduces context switching |
-| local retrieval / RAG | Retrieves similar work blocks, related reminders, calendar constraints, and learned rules | Grounds recommendations in the user's real context |
-| learned rules | Reuses user corrections | Improves recognition over time |
-| local AI summary | Produces structured review | Converts data into actionable conclusions |
-| Calendar writeback | Optionally writes plan or replay blocks | Returns output to a familiar system tool |
+| Today | What happened, and what should I do next? | Status, priority blocks, plan suggestions, execution progress |
+| Timeline | Did the system understand correctly? | Work replay, editing, linking, and correction |
+| Review | What patterns emerged over time? | Focus, fragmentation, plan coverage, drift, and next action |
+| Settings | Which data and rules affect the result? | Permissions, sources, model, ignored apps, learned rules |
 
-## 09. Memory and Learning
+The key design choice is to prevent four versions of the same dashboard: Today supports immediate decisions, Timeline establishes trust, Review supports periodic adjustment, and Settings preserves control.
 
-Trace's memory is not generic chat memory. It is explainable product memory for work understanding.
+## 06. How the AI Agent Enters the Product Loop
 
-### Short-term context
+Trace's agent is not a chat persona. It is a product mechanism embedded in a perceive-understand-plan-observe-correct loop.
 
-- Today's activity records
-- Current work blocks
-- Today's Calendar events
-- Incomplete Reminders
-- Generated plan suggestions
-- Current review cache
+```mermaid
+flowchart LR
+  A[Perceive<br/>activity/calendar/reminders] --> B[Understand<br/>form work blocks]
+  B --> C[Plan<br/>rank and propose next steps]
+  C --> D[Observe<br/>compare plan and actual]
+  D --> E[Review<br/>Did / Drift / Next]
+  E --> F[Correct<br/>user feedback]
+  F --> B
+```
 
-### Long-term local memory
-
-- learned rules
-- corrected categories
-- corrected context keys
-- manually linked reminders
-- Calendar edit recognition rules
-- ignored applications
-- category rule drafts
-
-### Why memory matters
-
-Without memory, the agent starts from zero every day and users must repeat the same corrections. Trace's learning loop is designed around:
-
-> If the user corrects a pattern once, the system should become closer to the user's real semantics next time.
-
-## 10. RAG / Context Grounding
-
-Trace uses RAG not as a generic Q&A knowledge base, but as a grounding layer for a personal work agent. The problem is that the same app, window title, reminder, or project keyword can mean different things for different users and at different stages of work.
-
-**Retrieval sources**
-
-| Retrieval source | Purpose |
-|---|---|
-| Historical work blocks | Find similar app / title / context key patterns and their corrected work meaning |
-| Reminders | Identify whether a suggestion maps to existing user intent |
-| Calendar events | Understand meetings, fixed commitments, and free-time constraints |
-| learned rules | Reuse corrected categories, labels, and relationships |
-| recent review summaries | Identify active themes, repeated drift, and unfinished next actions |
-
-**How RAG supports the agent**
-
-1. Work Understanding Agent retrieves similar historical records to improve naming and categorization.
-2. Planning Agent retrieves incomplete reminders, recent themes, and available time to produce contextual plan blocks.
-3. Execution Monitor compares plan blocks and actual work blocks using semantic similarity and retrieved evidence.
-4. Review Agent retrieves recent patterns and past drift to avoid generic, repetitive summaries.
-
-**Product boundaries**
-
-- Do not put all raw activity events into the prompt.
-- Do not use RAG to produce suggestions that look smart but cannot be explained.
-- Show evidence where possible, such as source Reminder, related Calendar event, or similar historical work block.
-- If retrieved evidence has low confidence, ask for correction instead of forcing a judgment.
-
-## 11. Planning Logic
-
-The Planning Agent does not simply list TODO items. It generates executable plan blocks. Each plan block includes:
-
-- title
-- start time / end time
-- duration
-- source reminder
-- confidence
-- rationale
-- next action
-- prep hint
-- energy level
-- priority reason
-- supporting evidence
-
-### Planning input
-
-| Input | Use |
-|---|---|
-| incomplete Reminders | Understand original user intent |
-| today's Calendar free time | Avoid conflicts |
-| today's work blocks | Decide whether to continue the current work theme |
-| reminder urgency | Detect deadline / today / ASAP |
-| estimated duration | Estimate block length |
-| energy inference | Classify high-focus, medium-focus, and low-pressure work |
-| retrieved context | Ground recommendations with similar historical work, recent reviews, and learned rules |
-
-### Example output
-
-| Field | Example |
-|---|---|
-| title | Refine product case study |
-| duration | 60 min |
-| source reminder | Update product case materials |
-| confidence | High |
-| rationale | You already spent significant time on the same product project today; continuing reduces context switching |
-| next action | Add problem definition and agent design details, then review metric clarity |
-| prep hint | Open the product case document, design reference, and implementation notes |
-| energy | High-focus |
-| priority reason | Strongly aligned with the current product delivery priority and today already has work momentum |
-| evidence | Related reminder, recent product work block, active case-study document |
-
-## 12. Execution Monitoring
-
-After the Planning Agent generates plan blocks, Trace compares actual work blocks against planned blocks.
-
-| State | Evidence | Product meaning |
+| Capability | Current implementation | Planned enhancement |
 |---|---|---|
-| Completed | Actual matched time is close to planned duration | The plan was effectively advanced |
-| Progressing | Clear related work exists but is not complete | The user can continue the current thread |
-| Started | Some related work exists | The user has entered the context |
-| Not started | No related work is detected | The item still needs scheduling |
-| Drifted | Planned time arrived but actual work was unrelated | The user needs drift review |
+| Work understanding | Rules, semantic fields, and learned user rules aggregate activity | Similar historical block retrieval |
+| Context building | Calendar, Reminders, activity history, and system warnings | Additional read-only context sources |
+| Planning | Deterministic ranking/scheduling plus optional local-LLM structured output | Retrieved evidence and personal rhythm |
+| Execution monitoring | Plan-block and actual-work-block matching | Better semantic matching and confidence calibration |
+| Review | Digest metrics, drift cues, local AI summary, and fallback | Cross-period pattern retrieval |
 
-This upgrades Trace from a recording tool to a plan-execution feedback tool.
+See [AI Agent System Design](ai-agent-system-design-en.md) for tools, memory, RAG, contracts, and fallback behavior.
 
-## 13. Human-in-the-loop Design
+## 07. Trust, Privacy, and Human Control
 
-An AI agent product should not optimize only for automation. Trace's trust mechanism is correction.
+Activity history is highly sensitive, so trust is a system constraint rather than a tooltip.
 
-Users can correct:
+**Local-first**
 
-- work block title
-- category
-- activity type
-- context key
-- start / end time
-- Reminder link
-- Calendar link
+- Activity and learned rules remain on the device
+- Local models avoid mandatory cloud upload
+- Core replay and planning logic does not depend on model availability
 
-System behavior after correction:
+**Correctable**
 
-1. Update the current record
-2. Write local learned rules
-3. Reuse similar rules later
-4. Avoid overwriting manually edited Calendar events
+Users can change work-block title, category, activity type, context key, time range, and Calendar/Reminders links. Corrections update the current record and create local rules that remain visible and resettable.
 
-Product judgment:
+**Low-confidence fallback**
 
-> For an AI agent, correctability is not a secondary feature. It is the trust mechanism.
+- Context read fails: show a warning and use cached or existing records
+- Local model is unavailable: use deterministic planning and structured summaries
+- Evidence is weak: request confirmation instead of forcing a link
+- Calendar write-back conflicts: preserve user edits rather than overwrite silently
 
-## 14. Information Architecture
+The product principle is: **correctability matters more than appearing intelligent, and graceful degradation is more trustworthy than mandatory AI.**
 
-Trace keeps four main pages in the current version.
+## 08. How Technical Constraints Shaped Product Decisions
 
-| Page | User question | Agent capability |
-|---|---|---|
-| Today | What happened today? What should I do next? | Planning Agent, execution status, live context |
-| Timeline | What exactly happened at each time? What needs correction? | Work Understanding Agent, correction loop |
-| Review | What are my work patterns over a period? | Review Agent, drift analysis, next step |
-| Settings | Which data sources and rules affect replay quality? | tool configuration, AI model, learned rules |
+Trace is not only a prototype. Desktop implementation exposed constraints that directly affect experience:
 
-Key product decision:
-
-> Today is not a dashboard, Timeline is not a raw log, and Review is not a longer version of Today. Each page must have a distinct job.
-
-## 15. Page Design Focus
-
-### Today
-
-Today helps users understand within 30 seconds whether Trace is working, what has been captured, what is moving the plan forward, what has drifted, and what should be prioritized next.
-
-Agent focus:
-
-- Read today's Reminders and Calendar
-- Generate remaining-day plan suggestions
-- Show execution state for each plan block
-- Explain why an item is prioritized
-
-### Timeline
-
-Timeline solves the trust problem. It shows aggregated work blocks instead of raw window events, and allows users to edit title, category, activity type, context key, time, and planning links.
-
-Agent focus:
-
-- Expose AI interpretation results
-- Let users correct them
-- Convert corrections into learned rules
-
-### Review
-
-Review focuses on longer-term patterns rather than real-time state. The AI summary is structured into three parts: did, drift, next.
-
-Agent focus:
-
-- Summarize real work structure over a period
-- Identify planning drift and low-value time
-- Recommend the next adjustment
-
-### Settings
-
-Settings exposes only the controls that affect replay quality: tracking, Calendar, Reminders, AI, local rules, and ignored apps.
-
-Agent focus:
-
-- Control data sources
-- Control AI model behavior
-- View and clear learned rules
-- Configure ignored apps and category rules
-
-## 16. Technical and Product Collaboration Understanding
-
-Trace's technical complexity comes mainly from the local macOS environment: active-window tracking, system permissions, Calendar / Reminders read-write behavior, local data storage, sleep / wake recovery, local AI summaries, user-edited Calendar events, retrieval quality, and learned rules.
-
-These constraints shaped product design:
-
-- Do not repeatedly interrupt users with permission prompts
-- Do not overwrite manually edited Calendar events
-- Use cache and fallback when context reading fails
-- Fall back to rules and explicit Calendar / Reminders context when retrieval evidence is weak
-- Do not block core review when AI summary fails
-- Keep local rules explainable and resettable
-- Make agent suggestions optional to write back, instead of taking over system tools by default
-
-## 17. Metrics and Evaluation
-
-| Metric | What it measures |
+| Constraint | Product response |
 |---|---|
-| work-block aggregation accuracy | Whether noise is actually compressed into understandable work |
-| Reminder / Calendar matching accuracy | Whether plan comparison is trustworthy |
-| plan suggestion adoption rate | Whether the Planning Agent is useful |
-| plan execution match rate | Whether suggestions turn into actual behavior |
-| manual correction rate | Cost of AI misinterpretation |
-| repeated correction reduction | Whether learned rules are effective |
-| retrieval hit rate and evidence precision | Whether RAG finds context that genuinely supports the agent output |
-| low-confidence fallback rate | Whether the agent avoids over-automation when evidence is weak |
-| review completion rate | Whether users return to review |
-| AI summary usefulness | Whether Review Agent output is actionable |
-| fallback trigger rate | Whether AI and system-tool instability are controlled |
+| Active-window tracking requires system permission | Clear status and permission feedback without repeated interruption |
+| Calendar/Reminders may time out or deny access | Cache, health state, timeout, and retry |
+| Sleep/wake creates abnormal activity gaps | Heartbeat and gap handling in aggregation |
+| Local model may be slow or unavailable | AI never blocks the core value; fallback always exists |
+| Automatic linking can be wrong | Show evidence and support manual link/unlink |
+| Calendar records may be user-edited | Detect and protect user changes |
 
-## 18. Roadmap
+This constraint-led work demonstrates product, engineering, and risk judgment more clearly than UI screens alone.
 
-### Phase 1: Beta reliability
+## 09. Implementation Evidence and Honest Status
 
-Stabilize activity tracking, permission handling, Calendar / Reminders health states, correction persistence, and cross-page data consistency.
+| Capability | Status | Repository evidence |
+|---|---|---|
+| macOS shell and activity capture | Implemented beta | `src-tauri/`, `src-tauri/src/watcher/` |
+| Work-block aggregation and context matching | Implemented beta | `src/utils/workblocks.ts` |
+| Calendar/Reminders integration | Implemented beta | `src-tauri/src/calendar.rs`, `src/services/ipc/` |
+| Plan generation, parsing, and deterministic fallback | Implemented beta | `src/utils/planning.ts`, `src/pages/Today.tsx` |
+| Correction and local learned rules | Implemented beta | `src/pages/Timeline.tsx`, `src-tauri/src/main.rs` |
+| Review and drift analysis | Implemented beta | `src/pages/Review.tsx`, `src/pages/Analytics.tsx` |
+| Local AI summary | Beta with fallback | `src-tauri/src/main.rs` |
+| Vector retrieval/RAG | Designed, not implemented | [AI Agent System Design](ai-agent-system-design-en.md) |
+| Offline agent evaluation set | Metrics defined; not yet built | `scripts/run-workblock-validations.ts` is the current logic-validation base |
 
-### Phase 2: Agent understanding quality
+## 10. Evaluation Framework
 
-Improve work-block aggregation, plan alignment, low-confidence prompts, correction learning evaluation, retrieval grounding quality, and plan suggestion adoption tracking.
+At this stage, retention and business growth cannot prove value, so evaluation is split into three layers.
 
-### Phase 3: Proactive planning assistant
+### A. Offline correctness
 
-Generate remaining-day plans from unfinished reminders, provide prep hints based on historical work patterns, suggest next actions based on drift patterns, and strengthen personal memory without making the product heavy.
+| Metric | Decision question |
+|---|---|
+| Work-block aggregation accuracy | Does the system convert noise into the correct work unit? |
+| Calendar/Reminders match precision | Is plan comparison evidence-based? |
+| Repeated correction reduction | Do learned rules reduce the same error? |
+| Low-confidence interception precision | Does the system know when not to automate? |
 
-### Phase 4: Low-risk external context
+### B. Task usability
 
-Gradually support more read-only context sources without rebuilding a task system; keep the principle of read more, write less, explain clearly, and allow rollback.
+- Can a user identify today's main workstream within 30 seconds?
+- Can a user find and correct a wrong work block?
+- Can a user understand the source and ranking reason for a suggestion?
+- Can core tasks still be completed when the model is unavailable?
 
-## 19. Reflection
+### C. Product value
 
-The most important product judgment in Trace is not "whether to add AI." It is:
+- Weekly review completion rate
+- Plan suggestion adoption rate
+- Plan-block execution match rate
+- User rating for replay accuracy and recommendation actionability
+- Permission retention after four weeks
 
-> An AI agent should understand facts, explain drift, recommend next steps, and ask for correction when confidence is low. It should not rebuild the user's work system or silently take over original tools.
+These are **planned validation metrics**, not claimed results.
 
-This project demonstrates my ability to turn an ambiguous problem into a bounded product, break AI agent capability into shippable mechanisms, and design context, RAG, memory, tool use, planning, fallback, and human-in-the-loop for a working AI product.
+## 11. Next Roadmap
+
+| Phase | Goal | Exit criterion |
+|---|---|---|
+| 1. Reliability | Stabilize permission, capture, aggregation, sync, and fallback | Core test scenarios pass and error states recover |
+| 2. Understanding quality | Build a labeled set and improve correction learning | Key work-block and plan matches reach acceptable precision |
+| 3. Retrieval grounding | Add local indexing, evidence references, and confidence | Suggestions cite useful evidence and weak evidence falls back correctly |
+| 4. External validation | Run a small closed beta | Demonstrate that users understand, trust, and repeat the core loop |
+
+Team collaboration, cross-platform expansion, and broad integrations remain out of scope until third-party validation.
+
+## 12. Reflection
+
+The most important change in Trace was not adding AI. It was moving from time visibility to trustworthy user judgment.
+
+This project demonstrates senior product capability through:
+
+- selecting a deliverable wedge from a broad productivity problem
+- controlling 0-to-1 scope with explicit non-goals
+- decomposing an agent into tools, memory, planning, observation, fallback, and correction
+- treating privacy, permission, and system failure as product design inputs
+- separating implemented capability, designed roadmap, and unvalidated hypothesis
+- defining a falsifiable evaluation framework for the next stage
+
+The final product judgment is:
+
+> A trustworthy personal work agent should not pretend to control everything. It should use facts to make limited, explainable, correctable suggestions—and step back when evidence is weak.
